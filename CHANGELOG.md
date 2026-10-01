@@ -6,7 +6,12 @@ Changelog tracking begins with the next release. Historical releases are not bac
 
 Since 1.11.0 both plugins share one version, held in `versions.json` and stamped into the manifests by CI. Entries below 1.11.0 use the older scheme, where the heading number belonged to whichever plugin that release was for — which is why those version numbers do not read in order.
 
-## [1.17.0] - 2026-09-28
+> **Note on numbering.** The Cube integration was developed on a fork while upstream
+> released 1.17.0–1.19.0 independently. Both entries below were authored as 1.16.0 and
+> 1.17.0 on the fork and are renumbered to 1.20.0 here, which is where they land after
+> merging upstream.
+
+## [1.20.0] - 2026-10-01
 
 ### omni-integrations
 
@@ -31,7 +36,7 @@ _Summary: a mapping review of the Cube integration corrected seven limitations t
 
 **Verified against the live Omni branch:** the notated view was written through `yaml-create`, validated clean, and read back with the header block and all field-level `PARTIAL` / `VERIFY` comments intact and still attached to their keys. Omni hoists `label` / `description` above a header block and prepends its own `# Reference this view as …`, so a header survives but never stays on line one — never write a comment whose meaning depends on its position.
 
-## [1.16.0] - 2026-09-22
+## [1.20.0] - 2026-10-01 (initial Cube integration)
 
 ### omni-integrations
 
@@ -46,6 +51,68 @@ _Summary: a bidirectional Cube (cube.dev) integration — three new skills that 
 - **Evals.** Five cases per skill covering edition detection, branch discipline, reference-syntax rewriting, the unmappable-feature reports, and refusing to claim continuous two-way sync.
 
 **Verified with a live round trip and a numeric parity check.** A Cube model was translated to Omni views + `relationships` + a topic on a branch, validated clean, and test-queried; then both platforms were pointed at the same Snowflake tables (key-pair auth) and the same aggregate compared row for row — **32/32 values agreed numerically** across 8 groups x 4 measures (sum, filtered sum, count distinct, count) over 848,768 fact rows. Several documented gotchas come from that run: the compiled model carries **no** `sql` expressions, a measure-level `filter` returns **NULL rather than 0** for groups with no matching rows, `prefix: true` renames view members to `<cube>_<member>`, segments and hierarchies do **not** propagate into views, and a dimension `case` cannot coexist with `sql`. Two operational traps were also found and documented: the two platforms' number serialization differs (JSON floats vs Arrow doubles), so parity must be compared numerically rather than as strings; and a second local Cube project silently keeps answering on port 4000, which will parity-check the wrong model. Cube Cloud-only surfaces (dev-mode branches, `cube data-model`, `cube meta`, build status) are documented from Cube's published docs and marked as not validated here.
+## [1.19.0] - 2026-10-01
+
+### omni-integrations
+
+**Changed**
+- **`omni-to-dbt-metricflow` — filter dependencies survive the drop list.** Step 4 is now three ordered passes: candidates, drops, dependencies. The dependency pass adds the primary key of every touched view and each kept measure's filter and `sql` dimensions, even when the drop pass removed them as `hidden: true` or as not selected by the topic. A measure whose dependency is filter-only, in a skipped view, or a cross-view expression is dropped and reported. Before, a view or topic export could drop a hidden dimension that a measure filters on; `dbt parse` and `mf validate-configs` pass, and only `mf query --explain` fails.
+- **`omni-to-dbt-metricflow` — same-view filters keep the group.** A same-view predicate now goes inside `expr` for every aggregate type (`count`: `THEN 1 END`, `sum`: `THEN <column> ELSE 0 END`, others: `THEN <column> END`), which is the SQL Omni generates itself, so the group stays present with the same value. The note on differences now states them exactly: only a cross-view metric `filter` differs, where the group is absent when queried alone and NULL when queried with other metrics, and Omni shows 0 for `count`, `count_distinct`, and `sum`. Step 9 tests a filtered metric alone and with an unfiltered one.
+- **`omni-to-dbt-metricflow` — week start day.** New note: MetricFlow has no per-model week start; its standard week is Monday on every adapter except Snowflake, where `DATE_TRUNC('week')` follows `WEEK_START`. FIELD-MAPPING.md documents a custom-granularity time-spine column for an Omni `week_start_day`, built from a fixed anchor date with dbt cross-db macros so it does not depend on the adapter's `DATE_TRUNC('week')` (Sunday on dbt-bigquery, `WEEK_START` on Snowflake). Omni's own weekly results are unchanged after fallback.
+
+## [1.18.0] - 2026-09-28
+
+### omni-analytics
+
+_Summary: `omni-content-builder` was re-checked against the current documents v2 API. Four things it warned about now behave differently, some missing options were added, and the skill now recommends one path wherever it used to list two. The check that runs each tile's query now reads its row count from JSON output. No command or flag changed._
+
+**Fixed**
+- **`omni-content-builder` — *Checking each tile's query*.** The validation reference ran each tile's query with `"resultType": "csv"`, whose output is only the CSV, and then read the row count from `cache_metadata.num_rows`, which that output does not have. The check now runs with `-o json`, which keeps the job envelope, and a CSV run is a separate spot-check of the data.
+
+**Changed**
+- **`omni-content-builder` — *Reading a tile's chart config*.** A tile's chart config now reads back in the same shape you write it. The warnings about a flattened read, and the `normalizeTile()` helper, are gone. After writing a tile, read it back and check that its `config` is not empty.
+- **`omni-content-builder` — *Hiding a control*.** A control's `hidden` flag is no longer accepted in a patch. A control shows wherever a container places it, so hide one by leaving it out of every container.
+- **`omni-content-builder` — *Where new tiles go*.** When a create or patch has no `containers`, every new tile is placed on the first page automatically. Send `containers` to place tiles yourself. This replaces the old note that only the first tile was laid out.
+- **`omni-content-builder` — *What a read returns*.** `v2-get` with a document's identifier returns the published document, never draft edits. A draft comes from `v2-get-draft`, or from `v2-get` with the draft's own identifier. Every read includes `modelId` and `workbookModelId`. `branchId` is accepted only on the patch that creates a draft. `v2-update-identifier` is now in the command tables, and SKILL.md's table also lists the query-model binding commands.
+- **`omni-content-builder` — *Newly documented options*.** Tile types (`foreign` replaces `app`, and a `linked` tile needs `sourceQueryPresentationKey`), the `treemap` and `svgMap` charts, percent stacking (`stack_percentage`, not `normalize`), filter metadata, `FIELD_PICKER` field order, four more layout items (spacer, divider, placeholder, text), stack and grid options, the page `breakpoint`, the 15-page limit, and length caps on names and subtitles. One unverified claim about inline filters was removed.
+- **`omni-content-builder` — *Model a filter, or add a control*.** A new paragraph on when a filter belongs in the model as a filter-only field rather than on the dashboard as a control.
+- **`omni-content-builder` — *Filter control type must match the filter type*.** `singleValueEquals` / `multiValueEquals` belong on `string` filters and `singleDay` / `timeframe` on `date` filters. The API doesn't check the pairing, and a `number` filter set to single selection drops every value a viewer picks. For buttons or a dropdown on a number field, a new section shows filtering on a text copy of the field, with `order_by_field` keeping the choices in numeric order.
+- **`omni-content-builder` — *One recommended path*.** Wherever the skill named two ways to do something, it now says which to use and when. For example, `list-drafts` is the lookup for a draft's workbook model id, and fields go in the JSON body whenever a request has one.
+- **`omni-content-builder` — *A shorter SKILL.md*.** SKILL.md drops from about 11.6k to about 5.9k tokens (487 to 198 lines). Document lifecycle examples and build workflows, the workbook-model field workflow, and dashboard downloads move into their own references (`document-lifecycle.md`, `workbook-model.md`, `downloads.md`); the controls create example and the model-or-control criteria move into `controls.md`. Long Known Issues entries keep the rule and link to the detail, and entries whose error message already explains the fix now live only in `documents-v2.md`'s error map. Every reference over 100 lines opens with a table of contents. The create example's date filter now uses the object form.
+- **`omni-content-builder` — *Headless by default*.** The skill no longer asks the agent to build anything in the Omni UI. Chart and filter configs come from the recipes or from reading back an existing dashboard, the UI-first workflow is gone, and a classic-layout dashboard is upgraded with `omni documents upgrade-layout`, which publishes immediately, so the agent confirms with the user first. A browser check of the rendered dashboard stays optional for when a browser is reachable; `validation-and-testing.md` lists how to work with a dashboard page that never goes idle.
+- **`omni-api-conventions` rule — *`--schema` and the API*.** `--schema` describes the installed CLI build, which can lag the API. When it disagrees with a doc, keep the CLI current and confirm with a live call.
+- **`omni-content-builder` — *Evals*.** Six cases updated and three added: hiding a control by placement, adding a tile without `containers`, and renaming a tile read from a draft.
+
+## [1.17.0] - 2026-09-24
+
+### omni-analytics
+
+_Summary: sync skills with Omni CLI v1.4.0. The release renames the eight document **app** commands (`documents v2-get-app` → `get-app`, and so on — paths and payloads unchanged), adds `user-attributes create` / `update` / `delete`, `users delete-email-only-bulk` and `skills list --q`, removes `dashboards get-filters` / `update-filters`, and syncs the API spec, which newly documents `schedules update` as a full replacement, `ai conversation-detail` as the way to read an eval run's conversation, and `documents v2-get` accepting a draft's own identifier. 245 commands, up from 243. Every behavior below was checked against the released 1.4.0 binary with `--help` and `--schema`._
+
+**Added**
+- **`omni-admin` — *User attribute definitions*.** `omni user-attributes create` / `update <id>` / `delete <id>`, replacing the old instruction to send the user to Admin → User Attributes when a definition is missing. The naming and type rules are left to `--help`, which fails loudly on them; the two behaviors that do not announce themselves are written down: what `delete` takes with it beyond the definition — every user value, embed SSO logins that still pass the name (an embed lockout), model SQL that references it, and connection-environment selection, which silently falls back to the default connection — and `Number` values being stored as strings, with a JSON number past 2^53 - 1 silently rounded on the way in (`9007199254740993` stores as `"9007199254740992"`).
+- **`omni-admin` — *Email-only users*.** The `users list-email-only` / `create-email-only` / `create-email-only-bulk` family beside Schedules, where these recipients are used, and the new `users delete-email-only-bulk` — which is partially successful by design, returning unmatched identifiers under `notFound` while the rest of the request still deletes.
+- **`omni-ai-eval` — *Reading a judged conversation*.** `omni ai conversation-detail <conversationId>` reads the transcript behind a `results[].agentic_job.conversation_id`, so a failure rationale no longer has to be chased through the UI. Eval conversations never appear in `ai conversations-list`, and **assistant text is retained for 30 days** — past that the call still returns 200, with only the user turns.
+- **`omni-ai-optimizer` — `skills list --q`.** Free-text search over name, handle and description, against `--identifier`'s exact handle match. Like `--creator-id`, it narrows within what the caller can already see and never widens it.
+
+**Changed**
+- **`omni-content-builder` — app commands lost their `v2-` prefix.** `documents v2-get-app`, `v2-get-draft-app`, `v2-get-main-draft-app`, `v2-put-app`, `v2-put-app-auto-draft`, `v2-patch-app`, `v2-patch-app-auto-draft` and `v2-remove-app` are now `get-app` … `remove-app`; arguments, paths and payloads are unchanged. SKILL.md's command table and `references/documents-v2.md` use the new names, with a note that 1.2.2–1.3.1 spell them with the prefix. The rest of the `documents v2-*` surface (`v2-create`, `v2-patch-draft`, `v2-publish-draft`, `v2-remove-dashboard`, …) keeps its prefix.
+- **`omni-content-builder` — `v2-get` on a draft identifier.** Passing a draft's own identifier reads that draft; the response carries `draftOf`, naming the published document — the way to build the `<identifier> <draftIdentifier>` pair when only the draft identifier is known.
+- **`omni-admin` — `schedules update` is a full replacement**, and returns `"success": true` either way. Any optional property left out is reset to its default — filter values cleared, the alert condition removed, `maxRowLimit` and the presentation flags back to defaults — and the read shape is not the write shape, so `schedules get` cannot be round-tripped into it (the GET nests presentation options under `metadata` and recipients under `destinations[]`, and feeding it straight back 400s on `destinationType`). The full list of what resets is left to `--help`.
+
+**Removed**
+- **`dashboards get-filters` / `dashboards update-filters` are gone from the CLI.** No skill, agent, or rule referenced them, so nothing in this repo changed; noted here because a caller's own scripts will now get an unknown-command error.
+
+## [1.16.0] - 2026-09-24
+
+### omni-analytics
+
+_Summary: `omni-query` and `omni-content-explorer` both documented `omni documents get-queries`, and neither description said which one owns "what does this tile actually query" — so the same request could reach either. The boundary is now stated in both descriptions: content-explorer locates and organizes content, omni-query explains and extracts what a query does. No command or flag changed._
+
+**Changed**
+- **`omni-query` — *Description*.** Now claims inspecting the query definition behind a dashboard tile. Paid for within the description length budget by dropping "or workbook" from the adjacent extract-data phrase; the description sits at 1007 of 1024 characters.
+- **`omni-content-explorer` — *Description*.** Now says explicitly that it locates and organizes content, and points at `omni-query` for a tile's fields, filters, and sorts — which is what its own `get-queries` note already said in the body.
+- **Evals.** The `omni-content-explorer` case that asked for a dashboard's underlying query fields moves to `omni-query` (case 19). It called `get-queries` and duplicated an existing `omni-query` case, so two near-identical prompts carried opposite `expected_skill` labels.
 
 ## [1.15.0] - 2026-09-21
 
