@@ -5,15 +5,15 @@
     "email": "support@omni.co"
   },
   "metadata": {
-    "description": "Official Omni Analytics skills for Cursor — explore models, run queries, build dashboards, embed analytics, and manage your Omni instance. Includes 9 skills, 3 specialized agents, and 4 context rules.",
-    "version": "1.14.0"
+    "description": "Official Omni Analytics skills for Cursor — explore models, run queries, build dashboards, embed analytics, and manage your Omni instance. Includes 9 skills, 3 specialized agents, and 4 context rules, plus 6 integration skills for Cube, Snowflake, Databricks, and dbt.",
+    "version": "1.17.0"
   },
   "plugins": [
     {
       "name": "omni-analytics",
       "source": "./",
       "description": "Explore, query, model, embed, and manage Omni Analytics through the REST API and embed SDK. Includes 9 skills, 3 specialized agents, and 4 context rules for model exploration, querying, model building, content browsing, content building, embedding, AI optimization, AI eval, and administration.",
-      "version": "1.14.0",
+      "version": "1.17.0",
       "author": {
         "name": "Omni Analytics"
       },
@@ -43,8 +43,8 @@
     {
       "name": "omni-integrations",
       "source": "./skills/omni-integrations",
-      "description": "Integration skills for connecting Omni Analytics with external data platforms — Snowflake Semantic Views, Databricks Metric Views, dbt MetricFlow, and more.",
-      "version": "1.14.0",
+      "description": "Integration skills for connecting Omni Analytics with external semantic layers and data platforms — bidirectional Cube (cube.dev) sync, Snowflake Semantic Views, Databricks Metric Views, dbt MetricFlow, and more.",
+      "version": "1.17.0",
       "author": {
         "name": "Omni Analytics"
       },
@@ -57,7 +57,14 @@
         "databricks",
         "metric-views",
         "data-platforms",
-        "analytics"
+        "analytics",
+        "cube",
+        "cube.dev",
+        "cubejs",
+        "cube-core",
+        "cube-cloud",
+        "semantic-layer",
+        "bidirectional"
       ],
       "category": "data"
     }
