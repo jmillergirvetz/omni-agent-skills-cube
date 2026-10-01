@@ -1,0 +1,98 @@
+{
+  "version": "1",
+  "skill_name": "cube-to-omni",
+  "defaults": {
+    "timeout_sec": 900,
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "cases": [
+    {
+      "id": "1",
+      "question": "Import our Cube view revenue_overview into Omni as a topic.",
+      "ground_truth": "Cube edition detected. Authored YAML read (not only /v1/meta). An Omni branch created before any write. Views, relationships, then topic written. Validated and test-queried on the branch. Nothing merged.",
+      "expected_behavior": [
+        "The agent detects which Cube edition is in play before choosing commands, rather than assuming the cube CLI works",
+        "The agent reads the authored Cube YAML for logic and treats the compiled model (/v1/meta or cube meta) only as an exposure check, stating that the compiled model carries no sql",
+        "The agent creates an Omni branch before writing any YAML and reports the branchId UUID returned by omni models create-branch",
+        "The agent writes views before relationships before topics, because Omni resolves references at validation time",
+        "The agent runs omni models validate against the branch and then a test query, not validate alone",
+        "The agent does NOT run omni models merge-branch or omni models commit"
+      ],
+      "expected_skill": "cube-to-omni"
+    },
+    {
+      "id": "2",
+      "question": "Sync the Cube model into Omni. Our Cube project has pre_aggregations and a dimension with mask: {sql: \"CONCAT('***', RIGHT(code, 3))\"}.",
+      "ground_truth": "Pre-aggregations reported as unmapped rather than translated. The masked dimension mapped \u2014 mask_unless_access_grants for the simple case, or companion dimensions gated by complementary access_grants to reproduce the custom mask shape \u2014 with the user-attribute dependency flagged. Dropped items named in the parent object's header block.",
+      "expected_behavior": [
+        "The agent does NOT attempt to translate pre_aggregations into an Omni materialized_query view automatically, and says why",
+        "The agent does NOT claim Omni lacks value masking \u2014 it maps the masked dimension to mask_unless_access_grants, noting Omni's built-in mask is an MD5 hash rather than a chosen value",
+        "To reproduce Cube's custom mask expression, the agent proposes companion dimensions (one per masking variant) gated by complementary access_grants keyed to different allowed_values of one user attribute",
+        "The agent flags that the masking depends on a user attribute that the sync cannot create, links the user-attributes docs, and says a missing attribute does not fail validation",
+        "The agent notes that access grants do not propagate through a measure referencing the masked dimension",
+        "The agent records the dropped pre_aggregations by name in the header block of the parent view or topic, not merely as a count"
+      ],
+      "expected_skill": "cube-to-omni"
+    },
+    {
+      "id": "3",
+      "question": "Bring the Cube measure total_revenue into Omni. Its sql is '{CUBE}.price * {CUBE}.quantity'.",
+      "ground_truth": "Reference syntax rewritten from Cube's {CUBE}.column form to Omni's ${field} form. No ${TABLE} used.",
+      "expected_behavior": [
+        "The agent rewrites {CUBE}.price and {CUBE}.quantity to Omni's ${price} and ${quantity} rather than copying the expression verbatim",
+        "The agent never emits ${TABLE}, and states that it does not exist in Omni",
+        "The agent maps Cube type: sum to Omni aggregate_type: sum"
+      ],
+      "expected_skill": "cube-to-omni"
+    },
+    {
+      "id": "4",
+      "question": "The Cube model has a count_distinct_approx measure. Bring it into Omni.",
+      "ground_truth": "Mapped to count_distinct with an explicit warning that the numbers will change.",
+      "expected_behavior": [
+        "The agent maps count_distinct_approx to Omni count_distinct because Omni has no approximate-distinct aggregate",
+        "The agent explicitly warns that the values will differ, because HyperLogLog is approximate and additive while exact distinct is neither",
+        "The agent does not translate it silently"
+      ],
+      "expected_skill": "cube-to-omni"
+    },
+    {
+      "id": "5",
+      "question": "Import the Cube model into Omni and merge it so the team can use it today.",
+      "ground_truth": "Branch prepared, validated, tested. The merge is raised as a separate decision and only performed after the user confirms in conversation.",
+      "expected_behavior": [
+        "The agent prepares the branch fully \u2014 create, write, validate, test-query \u2014 before raising the merge",
+        "The agent treats the merge as a distinct user-owned step and asks for explicit confirmation rather than merging because the request mentioned 'today'",
+        "The agent checks whether the Omni model is git-connected (omni models git-get) before choosing between a commit/PR and merge-branch"
+      ],
+      "expected_skill": "cube-to-omni"
+    },
+    {
+      "id": "6",
+      "question": "Import the Cube view revenue_overview into Omni. Include lineage so my team can tell what came from Cube.",
+      "ground_truth": "Every written object carries exactly one lineage comment; fields use the # cube: token, partial ports are marked PARTIAL with what Omni added, and each view/topic has a header block naming dropped members and PARTIAL fields.",
+      "expected_behavior": [
+        "Each dimension and measure carries exactly ONE comment \u2014 not a comment per sub-parameter",
+        "A fully-ported field's comment names the upstream cube member AND its file path in the Cube project",
+        "A field where only some sub-parameters came from Cube is marked PARTIAL and says what Omni added and why",
+        "A field with no Cube ancestor is marked as Omni-native rather than left unmarked",
+        "Each view and topic gets one header block recording the source object, the Cube project commit or branch, every dropped member by name, and the list of PARTIAL fields",
+        "The agent does not attach provenance comments to individual sub-parameters, which would make the field definitions hard to read"
+      ],
+      "expected_skill": "cube-to-omni"
+    },
+    {
+      "id": "7",
+      "question": "The Cube cube has an access_policy with row_level conditions. Bring it into Omni.",
+      "ground_truth": "Mapped to access_filters with the user attributes named, the silent-failure mode stated, and a per-role verification step with View as.",
+      "expected_behavior": [
+        "The agent maps access_policy.row_level to Omni access_filters",
+        "The agent names the specific user attributes the access filter depends on",
+        "The agent states that the sync cannot create user attributes and that a missing or unassigned attribute does NOT fail validation \u2014 the model validates and the filter silently does not constrain",
+        "The agent links the Omni user-attributes documentation in the YAML annotation, not just in chat",
+        "The agent tells the user to verify per role after promotion, citing Omni's View as feature"
+      ],
+      "expected_skill": "cube-to-omni"
+    }
+  ]
+}

@@ -51,7 +51,7 @@ Marketplace install (recommended, run separately):
 /plugin install omni-analytics@omni-analytics
 ```
 
-To also install the integrations plugin (Snowflake Semantic Views, etc.):
+To also install the integrations plugin (Cube, Snowflake Semantic Views, etc.):
 
 ```bash
 /plugin install omni-integrations@omni-analytics
@@ -81,7 +81,7 @@ Install from Git URL:
 /add-plugin https://github.com/exploreomni/omni-agent-skills.git
 ```
 
-To also install the integrations plugin (Snowflake Semantic Views, etc.), use [Cursor's team marketplace import](https://cursor.com/docs/plugins) (Dashboard > Settings > Plugins > Import) with the repo URL `https://github.com/exploreomni/omni-agent-skills` — both `omni-analytics` and `omni-integrations` will appear as separate installable plugins.
+To also install the integrations plugin (Cube, Snowflake Semantic Views, etc.), use [Cursor's team marketplace import](https://cursor.com/docs/plugins) (Dashboard > Settings > Plugins > Import) with the repo URL `https://github.com/exploreomni/omni-agent-skills` — both `omni-analytics` and `omni-integrations` will appear as separate installable plugins.
 
 <a id="install-cortex-code"></a>
 ### Cortex Code
@@ -102,7 +102,7 @@ mkdir -p .cortex/skills
 cp -R skills/omni-query .cortex/skills/
 ```
 
-Install the integrations skills (Snowflake Semantic Views, etc.):
+Install the integrations skills (Cube, Snowflake Semantic Views, etc.):
 
 ```bash
 mkdir -p .cortex/skills
@@ -132,7 +132,7 @@ Install one skill directly:
 npx skills add https://github.com/exploreomni/omni-agent-skills --skill omni-query
 ```
 
-Install the integrations skills (Snowflake Semantic Views, etc.):
+Install the integrations skills (Cube, Snowflake Semantic Views, etc.):
 
 ```bash
 npx skills add https://github.com/exploreomni/omni-agent-skills --skill omni-integrations
@@ -226,13 +226,24 @@ These activate from natural-language requests:
 | **omni-embed** | Embed Omni dashboards in external applications - URL signing, themes, and postMessage events |
 | **omni-ai-eval** | Evaluate AI query generation accuracy — run test prompts, compare results, and score across dimensions |
 
-### omni-integrations — Skills (3)
+### omni-integrations — Skills (6)
 
 | Skill | Description |
 |-------|-------------|
+| **cube-omni-pipeline** | Setup, edition detection, branch choreography and the end-to-end help guide for the bidirectional Cube ↔ Omni pipeline |
+| **cube-to-omni** | Sync a Cube (cube.dev) semantic model into Omni views, topics and relationships, on a branch |
+| **omni-to-cube** | Sync Omni model logic back into Cube cubes, views and joins, on a dev-mode or git branch |
 | **omni-to-snowflake-semantic-view** | Convert an Omni Analytics topic into a Snowflake Semantic View YAML definition |
 | **omni-to-databricks-metric-view** | Convert an Omni Analytics topic into a Databricks Metric View definition |
 | **omni-to-dbt-metricflow** | Move Omni view and relationship logic into dbt MetricFlow YAML, then make Omni fall back to the dbt definition |
+
+The three Cube skills are **bidirectional** and branch by default on both
+platforms. Start with **cube-omni-pipeline** — it covers prerequisites, the
+Cube Cloud vs. Cube Core differences, the ordered pipeline from a change in one
+platform to it existing in the other, and the full mapping/limitations matrix.
+They delegate Cube-side work to Cube's official
+[`cube-agent-skills`](https://github.com/cube-js/cube-agent-skills) and
+Omni-side work to `omni-model-builder` / `omni-model-explorer`.
 
 ### Agents (3)
 
@@ -271,6 +282,9 @@ Ask naturally:
 "Give the marketing team access to the sales dashboard"
 "Generate a signed embed URL for this dashboard"
 "Convert this Omni topic to a Snowflake Semantic View"
+"Import our Cube view revenue_overview into Omni as a topic"
+"Push this Omni measure back into Cube on a dev branch"
+"How do I get a change I made in Cube to show up in Omni?"
 "Move the measures on this Omni view into dbt semantic models and metrics"
 ```
 
@@ -404,6 +418,9 @@ omni-agent-skills/
 │       ├── .cursor-plugin/
 │       │   └── plugin.json
 │       └── skills/
+│           ├── cube-omni-pipeline/
+│           ├── cube-to-omni/
+│           ├── omni-to-cube/
 │           ├── omni-to-snowflake-semantic-view/
 │           ├── omni-to-databricks-metric-views/
 │           └── omni-to-dbt-metricflow/

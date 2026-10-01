@@ -1,0 +1,71 @@
+{
+  "version": "1",
+  "skill_name": "cube-omni-pipeline",
+  "defaults": {
+    "timeout_sec": 600,
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "cases": [
+    {
+      "id": "1",
+      "question": "How do I get a change I made in Cube to show up in Omni?",
+      "ground_truth": "The ordered Cube to Omni pipeline explained, distinguishing the dev-branch path from the deployed path, with branching as the default and merging as a separate user-owned step.",
+      "expected_behavior": [
+        "The agent lays out the ordered steps rather than a single command",
+        "The agent distinguishes reading from a Cube dev branch versus Cube's production environment",
+        "The agent states that an Omni branch is created before any write, and that merging is a separate step the user owns",
+        "The agent includes validation, a test query, and a parity check between the two platforms"
+      ],
+      "expected_skill": "cube-omni-pipeline"
+    },
+    {
+      "id": "2",
+      "question": "We run self-hosted Cube. Can I use the cube CLI and the Cube agent skills for this?",
+      "ground_truth": "The cube CLI and cube-agent-skills are Cube Cloud clients; on Cube Core the file-and-REST path applies instead.",
+      "expected_behavior": [
+        "The agent states that the cube CLI commands (login, context, deployments, data-model, meta) target Cube Cloud's API and do not work against self-hosted Cube Core",
+        "The agent gives the Core-native equivalents: the YAML files on disk, REST /cubejs-api/v1/meta, plain git branches, and a container reload as validation",
+        "The agent notes that data models themselves port unchanged between editions, so the mapping is edition-independent even though the plumbing is not",
+        "The agent does not claim Cube Core has dev-mode branches or build-status"
+      ],
+      "expected_skill": "cube-omni-pipeline"
+    },
+    {
+      "id": "3",
+      "question": "Set up a continuous two-way sync between Cube and Omni so both stay current automatically.",
+      "ground_truth": "Continuous symmetrical two-way sync is not supported; split ownership per object with a recorded owner, and one-directional re-syncs, offered instead.",
+      "expected_behavior": [
+        "The agent states plainly that there is no continuous sync and that symmetrical two-way sync of the same object is not supported by either platform",
+        "The agent explains that a round trip is not idempotent",
+        "The agent proposes split ownership per object — Cube owning physical structure and pre-aggregations, Omni owning curation and the AI layer — with business measures assigned explicitly",
+        "The agent recommends recording the owner and the sync point in the model itself so the next sync can diff rather than guess",
+        "The agent offers the divergence checks (cube data-model file-hashes, or a git diff on model/)"
+      ],
+      "expected_skill": "cube-omni-pipeline"
+    },
+    {
+      "id": "4",
+      "question": "What won't carry over between Cube and Omni?",
+      "ground_truth": "Direction-specific losses named concretely on both sides, not a generic caveat.",
+      "expected_behavior": [
+        "The agent separates Cube-to-Omni losses from Omni-to-Cube losses rather than giving one undifferentiated list",
+        "The agent names concrete Cube-side blockers such as pre_aggregations, dimension mask, rolling_window, and dynamic JS/Jinja models",
+        "The agent names concrete Omni-side blockers such as synonyms, sample_queries, ai_fields, the *_distinct_on aggregates, composite topics, and templated filters",
+        "The agent notes that only semantics cross — dashboards, workbooks and content do not"
+      ],
+      "expected_skill": "cube-omni-pipeline"
+    },
+    {
+      "id": "5",
+      "question": "Sync Cube into Omni for me.",
+      "ground_truth": "No branch was specified, so the agent asks for one (interactive) or creates and reports one (auto-mode) rather than writing unbranched.",
+      "expected_behavior": [
+        "The agent does not begin writing to Omni's shared model",
+        "In an interactive session the agent stops and asks which branch to use, proposing a name",
+        "The agent confirms both platforms read the same warehouse before translating",
+        "The agent routes to the cube-to-omni skill rather than translating within the pipeline skill itself"
+      ],
+      "expected_skill": "cube-omni-pipeline"
+    }
+  ]
+}

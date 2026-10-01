@@ -1,0 +1,94 @@
+{
+  "version": "1",
+  "skill_name": "omni-to-cube",
+  "defaults": {
+    "timeout_sec": 900,
+    "judge_model": "claude-sonnet-4-6"
+  },
+  "cases": [
+    {
+      "id": "1",
+      "question": "Push our Omni topic revenue_overview back into Cube as a view.",
+      "ground_truth": "Target Cube project read first. A Cube branch created before any write. Cubes written before views. Build run as validation and its output reported verbatim. Nothing deployed.",
+      "expected_behavior": [
+        "The agent reads the target Cube project before authoring, to match its existing file layout and conventions",
+        "The agent creates a Cube branch first \u2014 a dev-mode branch on Cloud (capturing the printed dev- name) or a git branch on Core \u2014 and explains that Cloud rejects writes on non-dev-mode branches",
+        "The agent writes cubes before the views that include them",
+        "The agent treats a build as the validation step, stating there is no offline validate command on either edition",
+        "The agent reports any build error verbatim rather than paraphrasing it",
+        "The agent does NOT run cube deploy or merge to production"
+      ],
+      "expected_skill": "omni-to-cube"
+    },
+    {
+      "id": "2",
+      "question": "Export this Omni view to Cube. It has synonyms and sample_queries on the measures.",
+      "ground_truth": "synonyms/sample_queries reported as having no Cube parameters; what fits folded into meta.ai_context prose with the 2000-char cap noted.",
+      "expected_behavior": [
+        "The agent states that synonyms and sample_queries have no Cube parameters at all",
+        "The agent folds what it can into meta.ai_context prose rather than inventing Cube parameters",
+        "The agent notes the 2,000-character per-value cap on ai_context and that overflow is silently truncated",
+        "The agent places ai_context on the view or the member, never on the cube, because Cube ignores cube-level ai_context",
+        "The agent explicitly reports what was dropped"
+      ],
+      "expected_skill": "omni-to-cube"
+    },
+    {
+      "id": "3",
+      "question": "Export an Omni dimension named 'month' and a measure with aggregate_type median to Cube.",
+      "ground_truth": "The dimension renamed off the reserved granularity keyword. The median measure mapped to number_agg with a Tesseract caveat.",
+      "expected_behavior": [
+        "The agent renames the 'month' dimension because it collides with a reserved Cube granularity keyword, e.g. month_dt with sql: month",
+        "The agent maps median to type: number_agg with MEDIAN(...) and warns that number_agg is Tesseract-only",
+        "The agent supplies both sql and type on every Cube dimension, because Cube infers neither"
+      ],
+      "expected_skill": "omni-to-cube"
+    },
+    {
+      "id": "4",
+      "question": "Our Omni measure completed_revenue uses filters. Translate it to Cube faithfully.",
+      "ground_truth": "Built as CASE WHEN ... THEN ... END inside sql rather than a measure-level filter, to avoid Cube's NULL-for-empty-groups behavior.",
+      "expected_behavior": [
+        "The agent explains that a Cube measure-level filter returns NULL rather than 0 for groups with no matching rows when queried alongside other measures",
+        "The agent prefers a CASE WHEN expression inside sql to preserve Omni's behavior",
+        "The agent verifies the result with a query rather than assuming the translation is correct"
+      ],
+      "expected_skill": "omni-to-cube"
+    },
+    {
+      "id": "5",
+      "question": "Export our Omni measure revenue_per_account, which uses sum_distinct_on with a custom_primary_key_sql.",
+      "ground_truth": "Reported as not translatable; a pre-deduplicated cube identified as the required modeling change rather than a translation.",
+      "expected_behavior": [
+        "The agent states that Cube has no dedup-aware aggregate equivalent to sum_distinct_on",
+        "The agent identifies that a pre-deduplicated cube is required and frames it as a modeling change, not a translation",
+        "The agent stops rather than silently emitting a plain sum that would be wrong"
+      ],
+      "expected_skill": "omni-to-cube"
+    },
+    {
+      "id": "6",
+      "question": "Export this Omni topic to Cube. It has a filter-only field used in a metric switcher and another that just offers a fixed list of statuses.",
+      "ground_truth": "The two filter-only uses split: the fixed-list one maps to a switch dimension, the Mustache value-injection one is reported as dropped with no Cube analog.",
+      "expected_behavior": [
+        "The agent distinguishes the two uses of filter-only fields rather than treating templated filters as uniformly mappable or uniformly unmappable",
+        "The fixed-list picker maps to dimension type: switch with values, flagged Tesseract-only",
+        "The metric switcher (Mustache value injection into another field's SQL) is reported as having no Cube analog and dropped",
+        "The dropped item is named in the parent cube's or view's header comment block"
+      ],
+      "expected_skill": "omni-to-cube"
+    },
+    {
+      "id": "7",
+      "question": "Push this Omni view to Cube with lineage notes so the Cube team knows what came from Omni.",
+      "ground_truth": "One lineage comment per Cube member naming the Omni source field and file, PARTIAL where Cube needed additions Omni did not supply, and a header block per file naming dropped Omni members.",
+      "expected_behavior": [
+        "Each Cube dimension and measure carries exactly one lineage comment naming its Omni source",
+        "Members where Cube required something Omni did not supply \u2014 an explicit type, a derived timeframe dimension, dialect-specific aggregate SQL \u2014 are marked PARTIAL with what was added",
+        "The header block names the Omni model and branch the content came from",
+        "Every dropped Omni member is named in a header block rather than silently omitted"
+      ],
+      "expected_skill": "omni-to-cube"
+    }
+  ]
+}
